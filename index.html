@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflix · TMDb API · posters</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body {
+            background: #0b0c0f;
+            transition: background 0.4s;
+        }
+        .hero-pre {
+            background: radial-gradient(circle at 30% 40%, rgba(40, 50, 60, 0.7) 0%, #0a0c0f 95%),
+                        url('https://images.unsplash.com/photo-1574267432553-4b4628081c31?q=80&w=2831&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center 30%;
+            background-blend-mode: overlay;
+            box-shadow: inset 0 0 150px #000000;
+            min-height: 100vh;
+        }
+        .netflix-main {
+            background: #141414;
+            min-height: 100vh;
+        }
+        .glass {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        #formWrapper {
+            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            width: 1600px;
+        }
+        .slide-left {
+            transform: translateX(-50%);
+        }
+        input {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: white !important;
+            font-weight: 500;
+            font-size: 16px;
+        }
+        input:focus {
+            outline: 2px solid #e50914;
+            outline-offset: 2px;
+            background: rgba(255, 255, 255, 0.25);
+        }
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 300;
+        }
+        /* Make typed text clearly visible */
+        input[type="text"], input[type="email"], input[type="password"] {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        .clickable-detail {
+            cursor: pointer;
+            transition: all 0.1s;
+            border-bottom: 1px dashed rgba(229,9,20,0.4);
+            display: inline-block;
+            padding: 0 0.25rem;
+            border-radius: 4px;
+        }
+        .clickable-detail:hover {
+            background: rgba(229,9,20,0.15);
+            border-bottom: 1px solid #e50914;
+        }
+        #userModal {
+            transition: opacity 0.2s ease;
+        }
+        .modal-scroll::-webkit-scrollbar-thumb {
+            background: #e50914;
+            border-radius: 20px;
+        }
+        .btn-play {
+            background: #e50914;
+        }
+        .btn-play:hover {
+            background: #b2070d;
+        }
+        .poster-card {
+            transition: transform 0.2s;
+            min-width: 160px;
+            width: 160px;
+            height: 240px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 0.5rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            background-color: #2a2a2a;
+        }
+        .poster-card:hover {
+            transform: scale(1.08);
+            border: 2px solid #e50914;
+        }
+        .poster-card .title-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            color: white;
+            padding: 30px 8px 8px 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            text-shadow: 0 1px 2px black;
+        }
+        .poster-card:hover .title-overlay {
+            opacity: 1;
+        }
+        .netflix-logo {
+            color: #e50914;
+            font-weight: 800;
+            font-size: 2rem;
+            letter-spacing: -0.5px;
+        }
+        .row-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid #e50914;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error-message {
+            color: #e50914;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PRE-LOGIN SECTION -->
+    <div id="preLoginSection" class="hero-pre w-full flex flex-col items-center justify-start px-4 md:px-12 pb-16 pt-4">
+        <!-- top bar -->
+        <div class="w-full max-w-7xl flex justify-between items-center py-4 z-20">
+            <div class="flex items-center gap-2">
+                <span class="netflix-logo">NETFLIX</span>
+                <span class="text-xs border border-white/20 px-2 py-0.5 rounded-md text-white/60">TMDb</span>
+            </div>
+            <div class="flex gap-4 text-sm text-white/80">
+                <a href="#" class="hover:text-white">Browse</a>
+                <a href="#" class="hover:text-white">Kids</a>
+                <a href="#" class="hover:text-white">DVD</a>
+            </div>
+        </div>
+
+        <!-- hero content -->
+        <div class="w-full max-w-7xl flex flex-col lg:flex-row gap-8 mt-8 z-10">
+            <!-- left: MONEYHEIST branding -->
+            <div class="flex-1 space-y-5">
+                <div class="flex items-center gap-2 text-sm text-white/50">
+                    <span class="w-6 h-px bg-white/30"></span><span>SERIES</span>
+                </div>
+                <h1 class="text-7xl md:text-8xl font-black tracking-tight leading-none">
+                    <span class="text-white">MONEY</span><span class="text-[#e50914]">HEIST</span>
+                </h1>
+                <div class="flex items-center gap-4 text-2xl font-semibold">
+                    <span>PART 4</span>
+                    <span class="flex items-center gap-1 text-base bg-black/40 border border-[#f5c518] text-[#f5c518] px-3 py-1 rounded-full">🍅 8.8/10</span>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl font-bold text-white/90">28+</span>
+                        <span class="text-sm uppercase tracking-wider text-white/40">Streams</span>
+                    </div>
+                    <div class="flex gap-3">
+                        <button class="btn-play px-8 py-2 rounded font-semibold flex items-center gap-2 text-white shadow-xl"><span>▶</span> Play</button>
+                        <button class="bg-black/40 border border-white/20 px-6 py-2 rounded font-medium flex items-center gap-2 text-white/80 hover:bg-black/60"><span>⏵</span> Watch Trailer</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 text-sm">
+                    <span class="text-white/40 tracking-wide">New this week</span>
+                    <div class="flex gap-2">
+                        <span class="bg-black/40 border border-white/10 px-4 py-1.5 rounded-full text-xs">PERFECTION</span>
+                        <span class="bg-black/40 border border-white/10 px-4 py-1.5 rounded-full text-xs">TRACTION</span>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-white/40 text-sm mb-2">Trending Now</p>
+                    <div class="flex flex-wrap gap-3">
+                        <span class="bg-black/40 border-l-2 border-[#e50914] px-4 py-2 rounded-md text-sm">PATHAN</span>
+                        <span class="bg-black/40 border-l-2 border-[#e50914] px-4 py-2 rounded-md text-sm">PEAKY BLINDERS</span>
+                        <span class="bg-black/40 border-l-2 border-[#e50914] px-4 py-2 rounded-md text-sm">SHADOW</span>
+                        <span class="bg-black/40 border-l-2 border-[#e50914] px-4 py-2 rounded-md text-sm">BEAST</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- right: GLASS AUTH PANEL - FIXED VISIBILITY -->
+            <div class="w-full lg:w-[450px] xl:w-[500px]">
+                <div class="glass rounded-3xl overflow-hidden shadow-2xl border border-white/10 relative">
+                    <div id="formWrapper" class="flex w-[1600px] transition-transform duration-700 ease-in-out">
+                        <!-- REGISTER -->
+                        <div class="w-[800px] flex-shrink-0 p-8 space-y-4 bg-transparent">
+                            <h2 class="text-3xl font-light text-white/90">Create account</h2>
+                            <p class="text-xs text-white/40 flex items-center gap-2"><span class="w-6 h-px bg-white/20"></span>join TMDb netflix</p>
+                            <input id="r_uname" type="text" class="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/70" placeholder="Username" autocomplete="off" style="color: white !important;">
+                            <input id="r_email" type="email" class="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/70" placeholder="Email address" style="color: white !important;">
+                            <input id="r_password" type="password" class="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/70" placeholder="Password" style="color: white !important;">
+                            <div id="registerError" class="error-message hidden"></div>
+                            <button onclick="register()" class="w-full p-3 bg-[#e50914] hover:bg-[#b2070d] rounded-lg font-semibold tracking-wide">Register</button>
+                            <p class="cursor-pointer text-sm text-white/50 hover:text-white underline underline-offset-2 transition" onclick="slideToLogin()">➡️ Already have an account? Login</p>
+                        </div>
+                        <!-- LOGIN - FIXED VISIBILITY -->
+                        <div class="w-[800px] flex-shrink-0 p-8 space-y-4 bg-transparent">
+                            <h2 class="text-3xl font-light text-white/90">Welcome back</h2>
+                            <p class="text-xs text-white/40 flex items-center gap-2"><span class="w-6 h-px bg-white/20"></span>sign in with username</p>
+                            <input id="l_uname" type="text" class="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/70" placeholder="Username" style="color: white !important;">
+                            <input id="l_password" type="password" class="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/70" placeholder="Password" style="color: white !important;">
+                            <div id="loginError" class="error-message hidden"></div>
+                            <button onclick="login()" class="w-full p-3 bg-[#e50914] hover:bg-[#b2070d] rounded-lg font-semibold tracking-wide">Login</button>
+                            <p class="cursor-pointer text-sm text-white/50 hover:text-white underline underline-offset-2 transition" onclick="slideToRegister()">⬅️ Don't have an account? Register</p>
+                            <button onclick="showUsers()" class="mt-2 w-full text-xs text-white/40 hover:text-white/90 transition flex items-center justify-center gap-1 border border-white/10 py-2 rounded-full">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                Show stored users
+                            </button>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-2 right-4 text-white/10 text-xs">TMDb INTEGRATION</div>
+                </div>
+            </div>
+        </div>
+        <div class="w-full max-w-7xl mt-10 text-white/20 text-xs border-t border-white/10 pt-4">© 2026 Netflix TMDb · MONEYHEIST PART4</div>
+    </div>
+
+    <!-- POST-LOGIN NETFLIX MAIN PAGE WITH TMDb API MOVIES -->
+    <div id="netflixMain" class="netflix-main w-full hidden flex-col text-white">
+        <!-- netflix top bar -->
+        <div class="fixed top-0 w-full bg-black/75 backdrop-blur-sm z-30 px-8 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <span class="netflix-logo text-3xl">NETFLIX</span>
+                <div class="flex gap-5 text-sm font-light">
+                    <span class="hover:text-white/80 cursor-pointer">Home</span>
+                    <span class="hover:text-white/80 cursor-pointer">TV Shows</span>
+                    <span class="hover:text-white/80 cursor-pointer">Movies</span>
+                    <span class="hover:text-white/80 cursor-pointer">New & Popular</span>
+                    <span class="hover:text-white/80 cursor-pointer">My List</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-sm border border-white/20 px-3 py-1 rounded-full">👤 <span id="loggedUsername" class="ml-1">user</span></span>
+                <button onclick="logout()" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded">Logout</button>
+            </div>
+        </div>
+
+        <!-- main content with TMDb movie posters -->
+        <div class="pt-24 px-8 pb-16">
+            <!-- hero featured (dynamic from TMDb) -->
+            <div id="heroFeatured" class="relative w-full h-[65vh] rounded-xl overflow-hidden mb-12 bg-cover bg-center" style="background: linear-gradient(90deg, #000000 0%, transparent 70%), #1a1a1a;">
+                <div class="absolute bottom-12 left-12 max-w-xl">
+                    <span class="text-[#e50914] font-semibold text-sm">TMDb FEATURED</span>
+                    <h1 id="heroTitle" class="text-6xl font-black mt-2">Loading...</h1>
+                    <div class="flex items-center gap-3 mt-2 text-sm">
+                        <span id="heroRating" class="text-yellow-400"></span><span id="heroYear"></span>
+                    </div>
+                    <p id="heroOverview" class="text-white/70 text-sm mt-3 max-w-md"></p>
+                    <div class="flex gap-3 mt-5">
+                        <button class="btn-play px-6 py-2 rounded font-semibold flex items-center gap-2">▶ Play</button>
+                        <button class="bg-white/20 hover:bg-white/30 px-6 py-2 rounded font-semibold">+ My List</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- loading indicator -->
+            <div id="loadingIndicator" class="loading-spinner"></div>
+
+            <!-- movie rows (filled by TMDb API) -->
+            <div id="movieRows" class="space-y-8 hidden">
+                <!-- Trending row -->
+                <div>
+                    <h2 class="row-title">🔥 Trending Now</h2>
+                    <div id="trendingRow" class="flex gap-3 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-600"></div>
+                </div>
+                <!-- Popular row -->
+                <div>
+                    <h2 class="row-title">⭐ Popular on Netflix</h2>
+                    <div id="popularRow" class="flex gap-3 overflow-x-auto pb-4"></div>
+                </div>
+                <!-- Now Playing row -->
+                <div>
+                    <h2 class="row-title">🎬 Now Playing</h2>
+                    <div id="nowPlayingRow" class="flex gap-3 overflow-x-auto pb-4"></div>
+                </div>
+                <!-- Top Rated row -->
+                <div>
+                    <h2 class="row-title">🏆 Top Rated</h2>
+                    <div id="topRatedRow" class="flex gap-3 overflow-x-auto pb-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- USERS MODAL -->
+    <div id="userModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass w-full max-w-2xl max-h-[70vh] overflow-auto p-6 rounded-2xl modal-scroll border border-white/20">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-light text-white/90">📋 registered users</h2>
+                <button onclick="closeModal()" class="text-white/60 hover:text-white text-2xl">&times;</button>
+            </div>
+            <table class="w-full text-sm text-left border-collapse">
+                <thead class="border-b border-white/20 text-white/70">
+                    <tr>
+                        <th class="pb-2 font-normal">Username</th>
+                        <th class="pb-2 font-normal">Password (enc.)</th>
+                        <th class="pb-2 font-normal">Email</th>
+                    </tr>
+                </thead>
+                <tbody id="userTable" class="text-white/80"></tbody>
+            </table>
+            <div class="flex justify-end mt-6">
+                <button onclick="closeModal()" class="px-5 py-2 bg-white/10 hover:bg-white/20 rounded-lg">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // TMDb API configuration
+        const TMDB_API_KEY = '3fd2be6f0c70a2a598f084ddfb75487c'; // Demo API key (public test key)
+        const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+        const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w342';
+
+        // Slide control
+        function slideToLogin() { 
+            document.getElementById("formWrapper").classList.add("slide-left");
+            hideError('loginError');
+        }
+        function slideToRegister() { 
+            document.getElementById("formWrapper").classList.remove("slide-left");
+            hideError('registerError');
+        }
+
+        // Error handling
+        function showError(elementId, message) {
+            const errorEl = document.getElementById(elementId);
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+        
+        function hideError(elementId) {
+            document.getElementById(elementId).classList.add('hidden');
+        }
+
+        // LocalStorage
+        function getUsers() { 
+            try { 
+                const users = JSON.parse(localStorage.getItem("netflixTMDbUsers")) || []; 
+                console.log('Retrieved users:', users);
+                return users;
+            } catch { 
+                return []; 
+            }
+        }
+        
+        function saveUsers(users) { 
+            localStorage.setItem("netflixTMDbUsers", JSON.stringify(users));
+            console.log('Saved users:', users);
+        }
+        
+        function encodePassword(pw) { return btoa(pw); }
+        function decodePassword(enc) { 
+            try { 
+                return atob(enc); 
+            } catch { 
+                return ''; 
+            } 
+        }
+
+        // Register
+        function register() {
+            hideError('registerError');
+            
+            const uname = document.getElementById('r_uname');
+            const email = document.getElementById('r_email');
+            const password = document.getElementById('r_password');
+            
+            const unameVal = uname.value.trim();
+            const emailVal = email.value.trim();
+            const passwordVal = password.value;
+
+            if (!unameVal || !emailVal || !passwordVal) {
+                showError('registerError', '❌ All fields are required.');
+                return;
+            }
+            if (passwordVal.length < 3) {
+                showError('registerError', 'Password must be at least 3 characters.');
+                return;
+            }
+
+            let users = getUsers();
+            
+            if (users.some(u => u.uname.toLowerCase() === unameVal.toLowerCase())) {
+                showError('registerError', 'Username already exists.');
+                return;
+            }
+
+            const newUid = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            const newUser = { 
+                uid: newUid, 
+                uname: unameVal, 
+                email: emailVal, 
+                password: encodePassword(passwordVal) 
+            };
+            
+            users.push(newUser);
+            saveUsers(users);
+
+            uname.value = ''; 
+            email.value = ''; 
+            password.value = '';
+            
+            alert('✅ Registration successful! Please login.');
+            slideToLogin();
+        }
+
+        // Login - FIXED VERSION
+        function login() {
+            hideError('loginError');
+            
+            const uname = document.getElementById('l_uname').value.trim();
+            const password = document.getElementById('l_password').value;
+
+            console.log('Login attempt - Username:', uname, 'Password:', password);
+
+            if (!uname || !password) {
+                showError('loginError', 'Please enter both username and password.');
+                return;
+            }
+
+            let users = getUsers();
+            
+            // Find user with case-insensitive comparison
+            let user = users.find(u => u.uname.toLowerCase() === uname.toLowerCase());
+
+            if (!user) {
+                showError('loginError', '❌ Username not found.');
+                return;
+            }
+
+            const decodedPassword = decodePassword(user.password);
+
+            if (decodedPassword === password) {
+                console.log('Login successful!');
+                document.getElementById('preLoginSection').classList.add('hidden');
+                document.getElementById('netflixMain').classList.remove('hidden');
+                document.getElementById('loggedUsername').innerText = user.uname;
+                
+                document.getElementById('l_uname').value = '';
+                document.getElementById('l_password').value = '';
+                closeModal();
+                
+                // Load TMDb movies after login
+                loadTMDBMovies();
+            } else {
+                showError('loginError', '❌ Invalid password.');
+            }
+        }
+
+        // Logout
+        function logout() {
+            document.getElementById('netflixMain').classList.add('hidden');
+            document.getElementById('preLoginSection').classList.remove('hidden');
+            slideToRegister();
+        }
+
+        // TMDb API Functions
+        async function fetchTMDB(endpoint) {
+            try {
+                const response = await fetch(`${TMDB_BASE_URL}${endpoint}?api_key=${TMDB_API_KEY}`);
+                return await response.json();
+            } catch (error) {
+                console.error('TMDb API error:', error);
+                return null;
+            }
+        }
+
+        async function loadTMDBMovies() {
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            document.getElementById('movieRows').classList.add('hidden');
+
+            try {
+                // Fetch multiple categories in parallel
+                const [trending, popular, nowPlaying, topRated] = await Promise.all([
+                    fetchTMDB('/trending/movie/week'),
+                    fetchTMDB('/movie/popular'),
+                    fetchTMDB('/movie/now_playing'),
+                    fetchTMDB('/movie/top_rated')
+                ]);
+
+                // Set hero featured from trending first movie
+                if (trending && trending.results && trending.results.length > 0) {
+                    const hero = trending.results[0];
+                    document.getElementById('heroTitle').innerText = hero.title;
+                    document.getElementById('heroRating').innerText = `⭐ ${hero.vote_average.toFixed(1)}/10`;
+                    document.getElementById('heroYear').innerText = hero.release_date ? ` (${hero.release_date.substring(0,4)})` : '';
+                    document.getElementById('heroOverview').innerText = hero.overview;
+                    if (hero.backdrop_path) {
+                        document.getElementById('heroFeatured').style.background = `linear-gradient(90deg, #000000 0%, transparent 70%), url(https://image.tmdb.org/t/p/original${hero.backdrop_path}) center/cover`;
+                    }
+                }
+
+                // Populate rows
+                renderMovieRow('trendingRow', trending?.results || []);
+                renderMovieRow('popularRow', popular?.results || []);
+                renderMovieRow('nowPlayingRow', nowPlaying?.results || []);
+                renderMovieRow('topRatedRow', topRated?.results || []);
+
+                document.getElementById('loadingIndicator').classList.add('hidden');
+                document.getElementById('movieRows').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading movies:', error);
+                document.getElementById('loadingIndicator').classList.add('hidden');
+            }
+        }
+
+        function renderMovieRow(containerId, movies) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            movies.slice(0, 10).forEach(movie => {
+                if (!movie.poster_path) return;
+                
+                const posterUrl = `${TMDB_IMAGE_BASE}${movie.poster_path}`;
+                const card = document.createElement('div');
+                card.className = 'poster-card';
+                card.style.backgroundImage = `url('${posterUrl}')`;
+                
+                const overlay = document.createElement('div');
+                overlay.className = 'title-overlay';
+                overlay.innerText = movie.title;
+                
+                card.appendChild(overlay);
+                container.appendChild(card);
+            });
+        }
+
+        // Prepopulate register form
+        function prepopulateRegisterForm(username) {
+            if (!username) { 
+                alert('Invalid username.'); 
+                return; 
+            }
+            
+            let users = getUsers();
+            let user = users.find(u => u.uname.toLowerCase() === username.toLowerCase());
+            
+            if (!user) { 
+                alert('User not found.'); 
+                return;
+            }
+            
+            slideToRegister();
+            document.getElementById('r_uname').value = user.uname || '';
+            document.getElementById('r_email').value = user.email || '';
+            document.getElementById('r_password').value = '';
+            document.getElementById('r_password').focus();
+            closeModal();
+            alert(`✏️ Editing "${user.uname}". Register as NEW user.`);
+        }
+
+        // Show users
+        function showUsers() {
+            let users = getUsers();
+            let tbody = document.getElementById("userTable");
+            tbody.innerHTML = "";
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-white/40">no registered users yet</td></tr>';
+            } else {
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-white/10 hover:bg-white/5';
+                    
+                    const cells = [
+                        { content: '👤 ' + user.uname, onclick: `prepopulateRegisterForm('${user.uname.replace(/'/g, "\\'")}')` },
+                        { content: '🔒 ' + user.password, onclick: `prepopulateRegisterForm('${user.uname.replace(/'/g, "\\'")}')` },
+                        { content: '✉️ ' + user.email, onclick: `prepopulateRegisterForm('${user.uname.replace(/'/g, "\\'")}')` }
+                    ];
+                    
+                    cells.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.className = 'py-2';
+                        const span = document.createElement('span');
+                        span.className = 'clickable-detail px-1 py-0.5 rounded';
+                        span.setAttribute('onclick', cell.onclick);
+                        span.title = 'Click to edit in register';
+                        span.textContent = cell.content;
+                        td.appendChild(span);
+                        row.appendChild(td);
+                    });
+                    
+                    tbody.appendChild(row);
+                });
+            }
+            document.getElementById("userModal").classList.remove("hidden");
+            document.getElementById("userModal").classList.add("flex");
+        }
+
+        function closeModal() {
+            document.getElementById("userModal").classList.add("hidden");
+            document.getElementById("userModal").classList.remove("flex");
+        }
+
+        document.getElementById('userModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Seed demo users with proper encoding
+        (function seedExampleUsers() {
+            let users = getUsers();
+            if (users.length === 0) {
+                // Create users with properly encoded passwords
+                const demoUsers = [
+                    { 
+                        uid: 'u1', 
+                        uname: 'professor', 
+                        email: 'prof@resistance.net', 
+                        password: encodePassword('berlin')  // password: berlin
+                    },
+                    { 
+                        uid: 'u2', 
+                        uname: 'tokyo', 
+                        email: 'tokyo@heist.com', 
+                        password: encodePassword('nairobi')  // password: nairobi
+                    },
+                    { 
+                        uid: 'u3', 
+                        uname: 'denver', 
+                        email: 'denver@money.io', 
+                        password: encodePassword('stockholm')  // password: stockholm
+                    }
+                ];
+                
+                saveUsers(demoUsers);
+                console.log('Demo users seeded:', demoUsers);
+            }
+        })();
+
+        window.addEventListener('pageshow', function() {
+            document.getElementById("formWrapper").classList.remove("slide-left");
+        });
+    </script>
+</body>
+</html>
